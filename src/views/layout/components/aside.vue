@@ -7,6 +7,8 @@
     background-color="#002033"
     text-color="#fff"
     active-text-color="#ffd04b"
+    router
+    :collapse="isCollapse"
   >
     <el-menu-item index="/">
       <i class="iconfont icon-shouye"></i>
@@ -43,9 +45,10 @@
 export default {
   name: 'AppAside',
   components: {},
-  props: {},
+  props: ['is-collapse'],
   data () {
     return {
+      // isCollapse: false
     }
   },
   computed: {},

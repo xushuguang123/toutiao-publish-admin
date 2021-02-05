@@ -1,10 +1,10 @@
 <template>
-<div class="">首页</div>
+  <div class>首页</div>
 </template>
 
 <script>
 export default {
-  name: '',
+  name: 'HomeIndex',
   components: {},
   props: {},
   data () {
@@ -19,5 +19,4 @@ export default {
 }
 </script>
 <style scoped lang=less>
-
 </style>
