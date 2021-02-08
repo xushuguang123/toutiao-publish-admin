@@ -13,32 +13,34 @@
         <!-- 数据筛选表单 -->
         <el-form ref="form" size="mini" :model="form" label-width="40px">
           <el-form-item label="状态">
-            <el-radio-group v-model="form.resource">
-              <el-radio label="全部"></el-radio>
-              <el-radio label="草稿"></el-radio>
-              <el-radio label="待审核"></el-radio>
-              <el-radio label="审核通过"></el-radio>
-              <el-radio label="审核失败"></el-radio>
-              <el-radio label="已删除"></el-radio>
+            <el-radio-group v-model="status">
+              <el-radio :label="null">全部</el-radio>
+              <el-radio :label="0">草稿</el-radio>
+              <el-radio :label="1">待审核</el-radio>
+              <el-radio :label="2">审核通过</el-radio>
+              <el-radio :label="3">审核失败</el-radio>
+              <el-radio :label="4">已删除</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item label="频道">
-            <el-select v-model="form.region" placeholder="请选择">
-              <el-option label="开发者资讯" value="shanghai"></el-option>
-              <el-option label="区域二" value="beijing"></el-option>
+            <el-select v-model="channelId" placeholder="请选择频道">
+              <el-option label="全部" :value="null"></el-option>
+              <el-option :label="channel.name" :value="channel.id" v-for="(channel, index) in channels" :key="index"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="日期">
             <el-date-picker
-              v-model="form.date1"
+              v-model="rangeDate"
               type="datetimerange"
               range-separator="至"
               start-placeholder="开始日期"
               end-placeholder="结束日期"
+              format="yyyy-MM-dd"
+              value-format="yyyy-MM-dd"
             ></el-date-picker>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="onSubmit">筛选</el-button>
+            <el-button type="primary" :disabled="loading" @click="loadArticles(1)">筛选</el-button>
           </el-form-item>
         </el-form>
         <!-- /数据筛选表单 -->
@@ -46,7 +48,7 @@
     </el-card>
 
     <el-card class="box-card">
-      <div slot="header" class="clearfix">根据筛选条件共查询到 46197 条结果：</div>
+      <div slot="header" class="clearfix">根据筛选条件共查询到 {{totalCount}} 条结果：</div>
       <div class="text item">
         <!-- 数据列表 -->
         <!--
@@ -60,7 +62,15 @@
           3.表格列默认只能渲染普通文本,如果需要展示其他内容,例如放个按钮啊,图片啊,那就需要自定义表格列模板：https://element.eleme.cn/#/zh-CN/component/table#zi-ding-yi-lie-mo-ban
         -->
         <el-table stripe size="mini" :data="articles" style="width: 100%">
-          <el-table-column prop="date" label="封面"></el-table-column>
+          <el-table-column prop="date" label="封面">
+            <template slot-scope="scope">
+              <el-image style="width: 100px; height: 100px;" :src="scope.row.cover.images[0]" fit="cover" lazy>
+                <div slot="error">
+                  <img style="width: 100%" src="./pic_bg.png" alt="">
+                </div>
+              </el-image>
+            </template>
+          </el-table-column>
           <el-table-column prop="title" label="标题"></el-table-column>
           <el-table-column label="状态">
             <!-- 如果需要在自定义模板中获取当前遍历项数据,那么就在template 上声明 slot-scope="scope" -->
@@ -80,15 +90,29 @@
           <el-table-column prop="pubdate" label="发布时间"></el-table-column>
           <el-table-column prop="address" label="操作">
             <!-- 如果需要自定义表格列模板,则把需要自定义的内容放到 template 里面 -->
-            <template>
+            <template slot-scope="scope">
               <el-button size="mini" circle icon="el-icon-edit" type="primary"></el-button>
-              <el-button size="mini" circle type="danger" icon="el-icon-delete"></el-button>
+              <el-button
+              size="mini"
+              circle
+              type="danger"
+              icon="el-icon-delete"
+              :disabled="loading"
+              @click="onDeleteArticle(scope.row.id)"></el-button>
             </template>
           </el-table-column>
         </el-table>
         <!-- /数据列表 -->
         <!-- 列表分页 -->
-        <el-pagination class="list-card" layout="prev, pager, next" background :total="1000"></el-pagination>
+        <el-pagination
+        class="list-card"
+        layout="prev, pager, next"
+        background
+        :total="totalCount"
+        :page-size="pageSize"
+        :disabled="loading"
+        :current-page="page"
+        @current-change="onCurrentChange"></el-pagination>
         <!-- /列表分页 -->
       </div>
     </el-card>
@@ -96,7 +120,7 @@
 </template>
 
 <script>
-import { getArticles } from '@/api/article'
+import { getArticles, getArticleChannels, deleteArticle } from '@/api/article'
 export default {
   name: 'ArticleIndex',
   components: {},
@@ -113,23 +137,6 @@ export default {
         resource: '',
         desc: ''
       },
-      tableData: [{
-        date: '2016-05-02',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1518 弄'
-      }, {
-        date: '2016-05-04',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1517 弄'
-      }, {
-        date: '2016-05-01',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1519 弄'
-      }, {
-        date: '2016-05-03',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1516 弄'
-      }],
       articles: [],
       articleStatus: [
         { status: 0, text: '草稿', type: 'info' },
@@ -137,24 +144,79 @@ export default {
         { status: 2, text: '审核通过', type: 'success' },
         { status: 3, text: '审核失败', type: 'warning' },
         { status: 4, text: '已删除', type: 'warning' }
-      ]
+      ],
+      totalCount: 0, // 总数据条数
+      pageSize: 10, // 每页大小
+      status: null, // 查询文章的状态,不传就是全部
+      channels: [], // 文章频道列表
+      channelId: null, // 查询文章的频道
+      rangeDate: null, // 筛选的范围日期
+      loading: true, // 表单中加载中 loading
+      page: 1 // 当前页码
     }
   },
   computed: {},
   watch: {},
   created () {
-    this.loadArticles()
+    this.loadChannels()
+    this.loadArticles(1)
   },
   mounted () { },
   methods: {
-    loadArticles () {
-      getArticles().then(res => {
-        console.log(res)
-        this.articles = res.data.data.results
+    // 获取文章列表数据
+    loadArticles (page = 1) {
+      // 展示加载中的 loading
+      this.loading = true
+      getArticles({
+        page,
+        per_page: this.pageSize,
+        status: this.status,
+        channel_id: this.channelId,
+        begin_pubdate: this.rangeDate ? this.rangeDate[0] : null, // 开始日期
+        end_pubdate: this.rangeDate ? this.rangeDate[1] : null // 截止日期
+      }).then(res => {
+        // console.log(res)
+        const { results, total_count: totalCount } = res.data.data
+        this.articles = results
+        this.totalCount = totalCount
+        // 关闭加载
+        this.loading = false
       })
     },
-    onSubmit () {
-      console.log('submit!')
+    // 跳转页码
+    onCurrentChange (page) {
+      this.loadArticles(page)
+    },
+    // 获取文章分类频道
+    loadChannels () {
+      getArticleChannels().then(res => {
+        this.channels = res.data.data.channels
+      })
+    },
+    // 删除文章
+    onDeleteArticle (articleId) {
+      // console.log(articleId)
+      // console.log(articleId.toString())
+      this.$confirm('确认删除吗？', '删除提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        // 确认执行这里
+        deleteArticle(articleId.toString()).then(res => {
+          // 删除成功, 更新当前页的文章数据列表
+          this.loadArticles(this.page)
+          this.$message({
+            message: '删除成功',
+            type: 'success'
+          })
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        })
+      })
     }
   }
 }
