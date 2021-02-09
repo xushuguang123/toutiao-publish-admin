@@ -4,14 +4,14 @@
       <div slot="header" class="clearfix">
         <!-- 面包屑路径导航 -->
         <el-breadcrumb separator-class="el-icon-arrow-right">
-          <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+          <el-breadcrumb-item to="{ path: '/' }">首页</el-breadcrumb-item>
           <el-breadcrumb-item>内容管理</el-breadcrumb-item>
         </el-breadcrumb>
         <!-- /面包屑路径导航 -->
       </div>
       <div class="text item">
         <!-- 数据筛选表单 -->
-        <el-form ref="form" size="mini" :model="form" label-width="40px">
+        <el-form size="mini" label-width="40px">
           <el-form-item label="状态">
             <el-radio-group v-model="status">
               <el-radio :label="null">全部</el-radio>
@@ -104,6 +104,7 @@
         </el-table>
         <!-- /数据列表 -->
         <!-- 列表分页 -->
+        <!-- 分页组件中设定的每页数据大小应该和我们请求数据的每页大小保持一致,或者页码的计算就会出现问题 -->
         <el-pagination
         class="list-card"
         layout="prev, pager, next"
@@ -127,16 +128,6 @@ export default {
   props: {},
   data () {
     return {
-      form: {
-        name: '',
-        region: '',
-        date1: '',
-        date2: '',
-        delivery: false,
-        type: [],
-        resource: '',
-        desc: ''
-      },
       articles: [],
       articleStatus: [
         { status: 0, text: '草稿', type: 'info' },
@@ -170,7 +161,7 @@ export default {
       getArticles({
         page,
         per_page: this.pageSize,
-        status: this.status,
+        status: this.status, // axios 不会发送数据为 null,undefined 之类的数据
         channel_id: this.channelId,
         begin_pubdate: this.rangeDate ? this.rangeDate[0] : null, // 开始日期
         end_pubdate: this.rangeDate ? this.rangeDate[1] : null // 截止日期
@@ -178,6 +169,7 @@ export default {
         // console.log(res)
         const { results, total_count: totalCount } = res.data.data
         this.articles = results
+        console.log(results)
         this.totalCount = totalCount
         // 关闭加载
         this.loading = false
