@@ -14,7 +14,14 @@
           <el-input v-model="article.title"></el-input>
         </el-form-item>
         <el-form-item label="内容">
-          <el-input type="textarea" v-model="article.content"></el-input>
+          <!-- <el-input type="textarea" v-model="article.content"></el-input> -->
+          <el-tiptap
+          v-model="article.content"
+          :extensions="extensions"
+          lang="zh"
+          height="350"
+          placeholder="请输入文章内容"
+        ></el-tiptap>
         </el-form-item>
         <el-form-item label="封面">
           <el-radio-group v-model="article.cover.type">
@@ -44,11 +51,44 @@
 </template>
 
 <script>
-import { getArticleChannels, addArticle, getArticle, updateArticle } from '@/api/article'
+import {
+  getArticleChannels,
+  addArticle,
+  getArticle,
+  updateArticle
+} from '@/api/article'
+
+import {
+  ElementTiptap,
+  Doc,
+  Text,
+  Paragraph,
+  Heading,
+  Bold,
+  Underline,
+  Italic,
+  Image,
+  Strike,
+  ListItem,
+  BulletList,
+  OrderedList,
+  TodoItem,
+  TodoList,
+  HorizontalRule,
+  Fullscreen,
+  Preview,
+  CodeBlock,
+  TextColor
+} from 'element-tiptap'
+import 'element-tiptap/lib/index.css'
+
+import { uploadImage } from '@/api/image'
 
 export default {
   name: 'PublishIndex',
-  components: {},
+  components: {
+    'el-tiptap': ElementTiptap
+  },
   props: {},
   data () {
     return {
@@ -61,6 +101,41 @@ export default {
           images: [] // 封面图片的地址
         }
       },
+      extensions: [
+        new Doc(),
+        new Text(),
+        new Paragraph(),
+        new Heading({ level: 3 }),
+        new Bold({ bubble: true }), // 在气泡菜单中渲染菜单按钮
+        new Image({
+          // 默认会把图片生成 base64 字符串和内容存储在一起, 如果需要自定义上传图片
+          uploadRequest (file) {
+            // 如果接口要求 content-Type 是 multipart/form-data, 则请求体必须使用 formdata
+            console.log(file)
+            const fd = new FormData()
+            fd.append('image', file)
+            // 第一个 return 是返回 Promise 对象
+            // 为什么? 因为 axios 本身就是返回 Promise 对象
+            return uploadImage(fd).then(res => {
+              // 这个 return 是返回最后的结果
+              return res.data.data.url
+            })
+          }
+        }),
+        new Underline(), // 下划线
+        new Italic(), // 斜体
+        new Strike(), // 删除线
+        new HorizontalRule(), // 华丽的分割线
+        new ListItem(),
+        new BulletList(), // 无序列表
+        new OrderedList(), // 有序列表
+        new TodoItem(),
+        new TodoList(),
+        new Fullscreen(),
+        new Preview(),
+        new CodeBlock(),
+        new TextColor()
+      ],
       channels: [] // 文章频道列表
     }
   },
@@ -94,7 +169,7 @@ export default {
         // 执行修改操作
         updateArticle(articleId, this.article, draft).then(res => {
           this.$message({
-            message: `${draft ? '存入草稿' : '修改'}成功`,
+            message: '修改成功',
             type: 'success'
           })
           // console.log(res)
@@ -106,7 +181,6 @@ export default {
             message: `${draft ? '存入草稿' : '发布'}成功`,
             type: 'success'
           })
-          // console.log(res)
           this.$router.push('/article')
         })
       }
