@@ -1,37 +1,42 @@
 <template>
-  <div class='publish-container'>
-    <el-card class='box-card'>
-      <div slot='header' class='clearfix'>
+  <div class="publish-container">
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
         <!-- 面包屑路径导航 -->
-        <el-breadcrumb separator-class='el-icon-arrow-right'>
-          <el-breadcrumb-item to='/'>首页</el-breadcrumb-item>
-          <el-breadcrumb-item>发布文章</el-breadcrumb-item>
+        <el-breadcrumb separator-class="el-icon-arrow-right">
+          <el-breadcrumb-item to="/">首页</el-breadcrumb-item>
+          <el-breadcrumb-item>{{$route.query.id ? '修改文章' : '发布文章'}}</el-breadcrumb-item>
         </el-breadcrumb>
         <!-- /面包屑路径导航 -->
       </div>
-      <el-form ref='article' :model='article' label-width='40px'>
-        <el-form-item label='标题'>
-          <el-input v-model='article.title'></el-input>
+      <el-form ref="form" :model="article" label-width="40px">
+        <el-form-item label="标题">
+          <el-input v-model="article.title"></el-input>
         </el-form-item>
-        <el-form-item label='内容'>
-          <el-input type='textarea' v-model='article.content'></el-input>
+        <el-form-item label="内容">
+          <el-input type="textarea" v-model="article.content"></el-input>
         </el-form-item>
-        <el-form-item label='封面'>
-          <el-radio-group >
-            <el-radio label='单图'></el-radio>
-            <el-radio label='三图'></el-radio>
-            <el-radio label='无图'></el-radio>
-            <el-radio label='自动'></el-radio>
+        <el-form-item label="封面">
+          <el-radio-group v-model="article.cover.type">
+            <el-radio :label="1">单图</el-radio>
+            <el-radio :label="3">三图</el-radio>
+            <el-radio :label="0">无图</el-radio>
+            <el-radio :label="-1">自动</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label='频道'>
-          <el-select v-model='article.channel_id' placeholder='请选择频道'>
-            <el-option :label='channel.name' :value='channel.id' v-for="(channel, index) in channels" :key="index"></el-option>
+        <el-form-item label="频道">
+          <el-select v-model="article.channel_id" placeholder="请选择频道">
+            <el-option
+              :label="channel.name"
+              :value="channel.id"
+              v-for="(channel, index) in channels"
+              :key="index"
+            ></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type='primary'>发表</el-button>
-          <el-button>存入草稿</el-button>
+          <el-button type="primary" @click="onPublish(false)">{{$route.query.id ? '修改' : '发布'}}</el-button>
+          <el-button v-if="! $route.query.id" @click="onPublish(true)">存入草稿</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -39,7 +44,7 @@
 </template>
 
 <script>
-import { getArticleChannels } from '@/api/article'
+import { getArticleChannels, addArticle, getArticle, updateArticle } from '@/api/article'
 
 export default {
   name: 'PublishIndex',
@@ -47,16 +52,6 @@ export default {
   props: {},
   data () {
     return {
-      form: {
-        name: '',
-        region: '',
-        date1: '',
-        date2: '',
-        delivery: false,
-        type: [],
-        resource: '',
-        desc: ''
-      },
       article: {
         title: '', // 文章标题
         content: '', // 文章内存
@@ -73,6 +68,13 @@ export default {
   watch: {},
   created () {
     this.loadChannels()
+
+    // 由于我们让发布和修改使用的同一个组件
+    // 所以这里要判断
+    // 如果路由路径参数中有 id, 则请求展示文章内容
+    if (this.$route.query.id) {
+      this.loadArticle()
+    }
   },
   mounted () {},
   methods: {
@@ -80,6 +82,45 @@ export default {
       getArticleChannels().then((res) => {
         this.channels = res.data.data.channels
         // console.log(res)
+      })
+    },
+    onPublish (draft = false) {
+      // 找到数据接口
+      // 封装请求方法
+      // 请求提交表单
+      // 如果是修改文章, 则执行修改操作, 否则执行添加操作
+      const articleId = this.$route.query.id
+      if (articleId) {
+        // 执行修改操作
+        updateArticle(articleId, this.article, draft).then(res => {
+          this.$message({
+            message: `${draft ? '存入草稿' : '修改'}成功`,
+            type: 'success'
+          })
+          // console.log(res)
+          this.$router.push('/article')
+        })
+      } else {
+        addArticle(this.article, draft).then((res) => {
+          this.$message({
+            message: `${draft ? '存入草稿' : '发布'}成功`,
+            type: 'success'
+          })
+          // console.log(res)
+          this.$router.push('/article')
+        })
+      }
+    },
+    // 修改文章: 加载文章内容
+    loadArticle () {
+      // console.log('loadArticle')
+      // 找到数据接口
+      // 封装请求方法
+      // 请求获取数据
+      const articleId = this.$route.query.id
+      getArticle(articleId).then(res => {
+        // 模板绑定展示
+        this.article = res.data.data
       })
     }
   }

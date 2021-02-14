@@ -91,7 +91,11 @@
           <el-table-column prop="address" label="操作">
             <!-- 如果需要自定义表格列模板,则把需要自定义的内容放到 template 里面 -->
             <template slot-scope="scope">
-              <el-button size="mini" circle icon="el-icon-edit" type="primary"></el-button>
+              <el-button
+              size="mini"
+              circle icon="el-icon-edit"
+              type="primary"
+              @click="$router.push('/publish?id=' + scope.row.id)"></el-button>
               <el-button
               size="mini"
               circle
