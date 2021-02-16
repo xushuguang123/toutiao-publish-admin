@@ -10,11 +10,19 @@
         <!-- /面包屑路径导航 -->
       </div>
       <div class="action-head">
-        <el-radio-group v-model="collect" size="mini" @change="onCollectChange">
-          <el-radio-button :label="false">全部</el-radio-button>
-          <el-radio-button :label="true">收藏</el-radio-button>
+        <el-radio-group v-model="collect" size="mini" @change="loadImages(1)">
+          <el-radio-button :disabled="loading" :label="false"
+            >全部</el-radio-button
+          >
+          <el-radio-button :disabled="loading" :label="true"
+            >收藏</el-radio-button
+          >
         </el-radio-group>
-        <el-button size="mini" type="success" @click="dialogTableVisible = true"
+        <el-button
+          v-if="!collect"
+          size="mini"
+          type="success"
+          @click="dialogTableVisible = true"
           >上传素材</el-button
         >
       </div>
@@ -26,12 +34,20 @@
           :md="6"
           v-for="(img, index) in images"
           :key="index"
+          class="image-item"
         >
-          <el-image
-            style="width: 180px; height: 180px"
-            :src="img.url"
-            fit="cover"
-          ></el-image>
+          <el-image style="height: 100px" :src="img.url" fit="cover"></el-image>
+          <div class="image-action">
+            <i
+              :class="{
+                'el-icon-star-on': img.is_collected,
+                'el-icon-star-off': !img.is_collected,
+              }"
+              is_collected
+              @click="onCollect(img)"
+            ></i>
+            <i class="el-icon-delete-solid"></i>
+          </div>
         </el-col>
       </el-row>
       <!-- /素材列表 -->
@@ -62,12 +78,16 @@
     </el-dialog>
     <!-- 列表分页 -->
     <!-- 分页组件中设定的每页数据大小应该和我们请求数据的每页大小保持一致,或者页码的计算就会出现问题 -->
+    <!--
+      分页数据改变以后,页码不会发生变化,他需要单独处理高亮页码
+     -->
     <el-pagination
       layout="prev, pager, next"
       background
       :total="totalCount"
       :page-size="pageSize"
       :current-page="page"
+      :disabled="loading"
       @current-change="onCurrentChange"
     ></el-pagination>
     <!-- /列表分页 -->
@@ -75,7 +95,7 @@
 </template>
 
 <script>
-import { getImages } from '@/api/image'
+import { getImages, collectImage } from '@/api/image'
 export default {
   name: 'ImageIndex',
   components: {},
@@ -90,7 +110,8 @@ export default {
         Authorization: `Bearer ${user.token}`
       }, // 配置请求参数
       totalCount: 0, // 总数据条数
-      pageSize: 12, // 每页大小
+      pageSize: 2, // 每页大小
+      loading: true, // 表单中加载中 loading
       page: 1 // 当前页码
     }
   },
@@ -101,31 +122,54 @@ export default {
   },
   mounted () { },
   methods: {
-    loadImages (collect = false, page = 1) {
+    // 获取素材数据
+    loadImages (page = 1) {
+      this.page = page
+      this.loading = true
       getImages({
-        collect,
         page,
+        collect: this.collect,
         per_page: this.pageSize
       }).then(res => {
         this.images = res.data.data.results
         this.totalCount = res.data.data.total_count
+        this.loading = false
         // console.log(res)
       })
     },
-    // 监听 radio 的值是否发生变化
-    onCollectChange (value) {
-      // console.log(value)
-      this.loadImages(value)
-    },
+    // // 监听 radio 的值是否发生变化
+    // onCollectChange (value) {
+    //   // console.log(value)
+    //   this.loadImages(value)
+    // },
     onUploadSuccess () {
       // 关闭对话框
       this.dialogTableVisible = false
       // 更新素材列表
-      this.loadImages(this.collect)
+      this.loadImages(this.page)
+      this.$message({
+        type: 'success',
+        message: '上传成功'
+      })
+      // console.log(this.page)
     },
     // 跳转页码
     onCurrentChange (page) {
-      this.loadImages(this.collect, page)
+      this.loadImages(page)
+    },
+    onCollect (img) {
+      // console.log(img)
+      collectImage(img.id, !img.is_collected).then(res => {
+        console.log(res)
+        img.is_collected = !img.is_collected
+      })
+      // if (img.is_collected) {
+      //   // 已收藏, 取消收藏
+      //   collectImage(img.id, false)
+      // } else {
+      //   // 没有收藏, 添加收藏
+      //   collectImage(img.id, true)
+      // }
     }
   }
 }
@@ -139,5 +183,21 @@ export default {
 .upload-center {
   display: flex;
   justify-content: center;
+}
+.image-item {
+  position: relative;
+}
+.image-action {
+  font-size: 25px;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 40px;
+  color: rgb(156, 53, 53);
+  background-color: rgba(204, 204, 205, 0.5);
+  position: absolute;
+  bottom: 4px;
+  left: 5px;
+  right: 5px;
 }
 </style>
