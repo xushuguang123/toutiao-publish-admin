@@ -38,14 +38,22 @@
         >
           <el-image style="height: 100px" :src="img.url" fit="cover"></el-image>
           <div class="image-action">
-            <i
+            <el-button
+              type="warning"
+              circle
+              size="mini"
+              :loading="img.loading"
+              :icon="img.is_collected ? 'el-icon-star-on' : 'el-icon-star-off'"
+              @click="onCollect(img)"
+            >
+            </el-button>
+            <!-- <i
               :class="{
                 'el-icon-star-on': img.is_collected,
                 'el-icon-star-off': !img.is_collected,
               }"
-              is_collected
               @click="onCollect(img)"
-            ></i>
+            ></i> -->
             <i class="el-icon-delete-solid"></i>
           </div>
         </el-col>
@@ -131,7 +139,14 @@ export default {
         collect: this.collect,
         per_page: this.pageSize
       }).then(res => {
-        this.images = res.data.data.results
+        const { results } = res.data.data
+        results.forEach(img => {
+          // img 对象本来没有 loading 数据
+          // 我们这里收到的往里面添加该数据是用来控制每个收藏按钮的 loading 状态
+          // 为每个数据添加一个单独的数据,相互不影响
+          img.loading = false
+        })
+        this.images = results
         this.totalCount = res.data.data.total_count
         this.loading = false
         // console.log(res)
@@ -159,9 +174,14 @@ export default {
     },
     onCollect (img) {
       // console.log(img)
+      // 展示 loading
+      img.loading = true
       collectImage(img.id, !img.is_collected).then(res => {
-        console.log(res)
+        // console.log(res)
+        // 更新视图状态
         img.is_collected = !img.is_collected
+        // 关闭 loading
+        img.loading = false
       })
       // if (img.is_collected) {
       //   // 已收藏, 取消收藏
