@@ -28,7 +28,7 @@ export const getImages = params => {
 }
 
 /*
- * 获取素材列表
+ * 收藏或取消素材
  */
 export const collectImage = (imageId, collect) => {
   return request({
@@ -37,5 +37,15 @@ export const collectImage = (imageId, collect) => {
     data: {
       collect
     }
+  })
+}
+
+/*
+ * 删除素材
+ */
+export const deletetImage = imageId => {
+  return request({
+    method: 'DELETE',
+    url: `/mp/v1_0/user/images/${imageId}`
   })
 }

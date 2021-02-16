@@ -41,7 +41,7 @@
             <el-button
               type="warning"
               circle
-              size="mini"
+              size="small"
               :loading="img.loading"
               :icon="img.is_collected ? 'el-icon-star-on' : 'el-icon-star-off'"
               @click="onCollect(img)"
@@ -54,7 +54,16 @@
               }"
               @click="onCollect(img)"
             ></i> -->
-            <i class="el-icon-delete-solid"></i>
+            <!-- <i class="el-icon-delete-solid"></i> -->
+            <el-button
+              type="danger"
+              circle
+              size="small"
+              :loading="img.loading"
+              icon="el-icon-delete-solid"
+              @click="onDelete(img)"
+            >
+            </el-button>
           </div>
         </el-col>
       </el-row>
@@ -103,7 +112,7 @@
 </template>
 
 <script>
-import { getImages, collectImage } from '@/api/image'
+import { getImages, collectImage, deletetImage } from '@/api/image'
 export default {
   name: 'ImageIndex',
   components: {},
@@ -157,6 +166,7 @@ export default {
     //   // console.log(value)
     //   this.loadImages(value)
     // },
+    // 打开蒙层
     onUploadSuccess () {
       // 关闭对话框
       this.dialogTableVisible = false
@@ -172,6 +182,7 @@ export default {
     onCurrentChange (page) {
       this.loadImages(page)
     },
+    // 收藏图片
     onCollect (img) {
       // console.log(img)
       // 展示 loading
@@ -190,6 +201,14 @@ export default {
       //   // 没有收藏, 添加收藏
       //   collectImage(img.id, true)
       // }
+    },
+    onDelete (img) {
+      img.loading = true
+      deletetImage(img.id).then(res => {
+        // 重新加载数据列表
+        this.loadImages(this.page)
+        img.loading = false
+      })
     }
   }
 }
