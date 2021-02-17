@@ -41,11 +41,11 @@
       <el-pagination
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
-        :current-page="currentPage4"
-        :page-sizes="[100, 200, 300, 400]"
-        :page-size="100"
+        :current-page.sync="page"
+        :page-sizes="[10, 20, 30, 50]"
+        :page-size.sync="pageSize"
         layout="total, sizes, prev, pager, next, jumper"
-        :total="400"
+        :total="totalCount"
         background
       >
       </el-pagination>
@@ -68,7 +68,10 @@ export default {
         comment_status: true
 
       }], // 文章评论管理数据
-      currentPage4: 1
+      currentPage4: 1,
+      totalCount: 0, // 总数据条数
+      pageSize: 10, // 每页大小
+      page: 1 // 当前激活的页码
     }
   },
   computed: {},
@@ -80,10 +83,12 @@ export default {
   mounted () { },
   methods: {
     // 获取评论列表数据
-    loadArticles () {
+    loadArticles (page = 1) {
       // 获取评论列表接口
       getArticles({
-        response_type: 'comment'
+        response_type: 'comment',
+        page,
+        per_page: this.pageSize
       }).then(res => {
         // console.log(res)
         const { results } = res.data.data
@@ -91,6 +96,7 @@ export default {
           article.statusDisabled = false
         })
         this.articles = results
+        this.totalCount = res.data.data.total_count
       })
     },
     onStatusChange (article) {
@@ -110,8 +116,14 @@ export default {
         // console.log(res)
       })
     },
-    handleSizeChange () { },
-    handleCurrentChange () { }
+    handleSizeChange () {
+      this.loadArticles(1)
+    },
+    // 点击页码跳转的页码数
+    handleCurrentChange (page) {
+      // console.log(page)
+      this.loadArticles(page)
+    }
   }
 }
 </script>
