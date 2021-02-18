@@ -38,6 +38,10 @@
           </template>
         </el-table-column>
       </el-table>
+      <!--
+        current-page 控制激活的页码, 初始值为第一页
+        page-size 控制可选的每页大小
+       -->
       <el-pagination
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
